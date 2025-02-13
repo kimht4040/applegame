@@ -2,9 +2,12 @@ package com.example.myapplication
 
 import android.content.Context
 import android.graphics.*
+import android.os.Handler
+import android.os.Looper
 import android.util.AttributeSet
 import android.view.MotionEvent
 import android.view.View
+import android.widget.TextView
 import android.widget.Toast
 import androidx.core.content.ContextCompat
 import kotlin.math.abs
@@ -62,6 +65,46 @@ class InGameView(context: Context, attrs: AttributeSet?) : View(context, attrs) 
         } else {
             0f
         }
+    }
+    private var score = 0 // 점수를 저장할 변수 추가
+    private var scoreTextView: TextView? = null // 점수 TextView를 위한 변수 추가
+
+    private val handler = Handler(Looper.getMainLooper()) // 메인 스레드의 Handler 생성
+
+    // Runnable 정의: 그리드 업데이트 (숫자 떨어뜨리기, 다시 채우기, 화면 갱신)
+    private val updateGridRunnable = object : Runnable {
+        override fun run() {
+
+            // gameGrid.refillGrid()  // 이 부분을 제거하거나 주석 처리합니다.
+            gridData = gameGrid.getGrid() // 변경된 그리드 데이터를 가져옴
+            invalidate() // 화면을 다시 그림
+
+            if (!gameGrid.hasValidMoves()) {
+                // 더 이상 움직일 수 없으면 게임 오버
+                Toast.makeText(context, "게임 오버!", Toast.LENGTH_LONG).show()
+                handler.removeCallbacks(this) // Runnable 제거 (반복 중지)
+
+                return //run()메소드 종료
+            }
+
+            handler.postDelayed(this, 500) // 500ms 후에 다시 실행
+        }
+    }
+
+    fun setScoreTextView(textView: TextView) {
+        scoreTextView = textView
+        updateScoreDisplay() // 초기 점수 표시
+    }
+
+
+    // 점수를 업데이트하고 TextView에 표시하는 함수
+    private fun updateScore(removedCellsCount: Int) {
+        score += removedCellsCount // 제거된 셀 개수만큼 점수 증가
+        updateScoreDisplay()
+    }
+
+    private fun updateScoreDisplay(){
+        scoreTextView?.text = "Score: $score" // TextView에 점수 표시
     }
 
     override fun onDraw(canvas: Canvas) {
@@ -143,22 +186,24 @@ class InGameView(context: Context, attrs: AttributeSet?) : View(context, attrs) 
             }
             MotionEvent.ACTION_UP -> {
                 val sum = calculateSelectedSum()
-                //Toast.makeText(context, "선택된 셀들의 합: $sum", Toast.LENGTH_SHORT).show()
 
                 if (sum == 10) {
+                    val removedCellsCount = selectedCells.size // 제거될 셀의 개수
                     gameGrid.removeCells(selectedCells) // 셀 제거
-                    gridData = gameGrid.getGrid()   //데이터 다시 가져옴
-                    Toast.makeText(context, "10을 만들었습니다!", Toast.LENGTH_SHORT).show()
+                    updateScore(removedCellsCount)       // 점수 업데이트
+                    handler.removeCallbacks(updateGridRunnable) // 기존 Runnable 제거
+                    handler.post(updateGridRunnable)             // 즉시 새 Runnable 실행 (드롭/리필 시작)
+
+                } else {
+                    // 합이 10이 아니면 선택 해제
+                    startX = -1f
+                    startY = -1f
+                    endX = -1f
+                    endY = -1f
+                    selectedCells.clear()
+                    invalidate()
 
                 }
-
-                // 선택 해제 및 초기화
-                startX = -1f
-                startY = -1f
-                endX = -1f
-                endY = -1f
-                selectedCells.clear()
-                invalidate()
                 return true
             }
         }
