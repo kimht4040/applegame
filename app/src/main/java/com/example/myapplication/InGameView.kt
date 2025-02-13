@@ -2,17 +2,17 @@ package com.example.myapplication
 
 import android.content.Context
 import android.graphics.*
-import android.os.Handler
-import android.os.Looper
 import android.util.AttributeSet
 import android.view.MotionEvent
 import android.view.View
-import android.widget.TextView
-import android.widget.Toast
+import android.os.Handler
+import android.os.Looper
 import androidx.core.content.ContextCompat
-import kotlin.math.abs
-import kotlin.math.max
-import kotlin.math.min
+import android.widget.TextView
+import android.os.CountDownTimer // CountDownTimer import
+import android.widget.Toast
+import androidx.appcompat.app.AlertDialog
+
 
 class InGameView(context: Context, attrs: AttributeSet?) : View(context, attrs) {
 
@@ -44,37 +44,20 @@ class InGameView(context: Context, attrs: AttributeSet?) : View(context, attrs) 
 
     private val selectedCells = mutableSetOf<Pair<Int, Int>>() // 선택된 셀 (row, col) 저장
 
-    private val emptyCellPaint = Paint().apply { // 빈 셀을 위한 Paint
-        color = Color.LTGRAY // 밝은 회색. 원하는 색상으로 변경 가능.
-        style = Paint.Style.FILL
-    }
+    private var score = 0 // 점수를 저장할 변수
+    private var scoreTextView: TextView? = null //점수 TextView
+    private var timerTextView: TextView? = null //타이머 TextView
+    private var countDownTimer: CountDownTimer? = null // CountDownTimer 변수 추가
+    private var timeLeftInMillis: Long = 120000 // 60초 (원하는 시간으로 변경)
+    private var timerRunning: Boolean = false
 
-    init {
-        resetGrid()
-    }
-
-    private fun resetGrid() {
-        gridData = gameGrid.getGrid()
-        invalidate()
-    }
-
-    override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
-        super.onSizeChanged(w, h, oldw, oldh)
-        cellSize = if (w > 0 && h > 0) {
-            (w / 17f).coerceAtMost(h / 10f)
-        } else {
-            0f
-        }
-    }
-    private var score = 0 // 점수를 저장할 변수 추가
-    private var scoreTextView: TextView? = null // 점수 TextView를 위한 변수 추가
 
     private val handler = Handler(Looper.getMainLooper()) // 메인 스레드의 Handler 생성
 
     // Runnable 정의: 그리드 업데이트 (숫자 떨어뜨리기, 다시 채우기, 화면 갱신)
     private val updateGridRunnable = object : Runnable {
         override fun run() {
-
+            gameGrid.dropNumbers() // 숫자들을 아래로 떨어뜨림
             // gameGrid.refillGrid()  // 이 부분을 제거하거나 주석 처리합니다.
             gridData = gameGrid.getGrid() // 변경된 그리드 데이터를 가져옴
             invalidate() // 화면을 다시 그림
@@ -83,6 +66,7 @@ class InGameView(context: Context, attrs: AttributeSet?) : View(context, attrs) 
                 // 더 이상 움직일 수 없으면 게임 오버
                 Toast.makeText(context, "게임 오버!", Toast.LENGTH_LONG).show()
                 handler.removeCallbacks(this) // Runnable 제거 (반복 중지)
+                stopTimer() //타이머 종료
 
                 return //run()메소드 종료
             }
@@ -96,15 +80,47 @@ class InGameView(context: Context, attrs: AttributeSet?) : View(context, attrs) 
         updateScoreDisplay() // 초기 점수 표시
     }
 
+    fun setTimerTextView(textView: TextView) {
+        timerTextView = textView
+        updateCountdownText() // 초기 타이머 텍스트 설정
+    }
+
+
 
     // 점수를 업데이트하고 TextView에 표시하는 함수
     private fun updateScore(removedCellsCount: Int) {
-        score += removedCellsCount // 제거된 셀 개수만큼 점수 증가
+        score += removedCellsCount * removedCellsCount// 제거된 셀 개수만큼 점수 증가
         updateScoreDisplay()
     }
 
     private fun updateScoreDisplay(){
-        scoreTextView?.text = "$score" // TextView에 점수 표시
+        scoreTextView?.text = "Score: $score" // TextView에 점수 표시
+    }
+
+    init {
+        resetGrid()
+        startTimer()
+
+    }
+
+    private fun resetGrid() {
+        gameGrid.resetGrid()
+        gridData = gameGrid.getGrid()
+        invalidate()
+        score = 0 // 점수 초기화
+        updateScoreDisplay() // 점수 표시 업데이트
+        timeLeftInMillis = 120000 // 타이머 초기화
+        updateCountdownText()
+        handler.postDelayed(updateGridRunnable, 500) // 게임 루프 시작
+    }
+
+    override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
+        super.onSizeChanged(w, h, oldw, oldh)
+        cellSize = if (w > 0 && h > 0) {
+            (w / 17f).coerceAtMost(h / 10f)
+        } else {
+            0f
+        }
     }
 
     override fun onDraw(canvas: Canvas) {
@@ -129,7 +145,6 @@ class InGameView(context: Context, attrs: AttributeSet?) : View(context, attrs) 
                 val x = startX + col * cellSize + cellPadding
                 val y = startY + row * cellSize + cellPadding
 
-                // 값이 0이면 아무것도 그리지 않고 건너뜀 (투명하게 처리)
                 if (gridData[row][col] != 0) {
                     canvas.drawBitmap(scaledAppleBitmap, x, y, null)
 
@@ -188,9 +203,10 @@ class InGameView(context: Context, attrs: AttributeSet?) : View(context, attrs) 
                 val sum = calculateSelectedSum()
 
                 if (sum == 10) {
-                    val removedCellsCount = selectedCells.size // 제거될 셀의 개수
+                    val removedCellsCount = selectedCells.size// 제거될 셀의 개수
                     gameGrid.removeCells(selectedCells) // 셀 제거
                     updateScore(removedCellsCount)       // 점수 업데이트
+
                     handler.removeCallbacks(updateGridRunnable) // 기존 Runnable 제거
                     handler.post(updateGridRunnable)             // 즉시 새 Runnable 실행 (드롭/리필 시작)
 
@@ -208,6 +224,7 @@ class InGameView(context: Context, attrs: AttributeSet?) : View(context, attrs) 
             }
         }
         return super.onTouchEvent(event)
+
     }
 
     // 좌표를 셀 (row, col)로 변환하는 함수
@@ -234,5 +251,59 @@ class InGameView(context: Context, attrs: AttributeSet?) : View(context, attrs) 
             sum += gridData[row][col]
         }
         return sum
+    }
+
+    private fun startTimer() {
+        countDownTimer = object : CountDownTimer(timeLeftInMillis, 1000) {
+            override fun onTick(millisUntilFinished: Long) {
+                timeLeftInMillis = millisUntilFinished
+                updateCountdownText()
+            }
+
+            override fun onFinish() {
+                timerRunning = false
+                timeLeftInMillis = 0
+                updateCountdownText()
+                showGameOverDialog() // 게임 종료 다이얼로그 표시
+                handler.removeCallbacks(updateGridRunnable) //updateGridRunnable 중지
+
+            }
+        }.start()
+
+        timerRunning = true
+    }
+
+    private fun stopTimer() {
+        countDownTimer?.cancel()
+        timerRunning = false
+    }
+
+    private fun updateCountdownText() {
+        val minutes = (timeLeftInMillis / 1000) / 60
+        val seconds = (timeLeftInMillis / 1000) % 60
+
+        val timeLeftFormatted = String.format("%02d:%02d", minutes, seconds)
+        timerTextView?.text = timeLeftFormatted
+    }
+
+    private fun showGameOverDialog() {
+        AlertDialog.Builder(context)
+            .setTitle("게임 종료")
+            .setMessage("시간이 초과되었습니다!")
+            .setCancelable(false)
+            .setPositiveButton("다시 시작") { _, _ ->
+                resetGrid() // 그리드, 점수, 타이머 초기화
+                startTimer() // 타이머 다시 시작
+
+            }
+            .setNegativeButton("종료") { _, _ ->
+                // 필요하다면 액티비티 종료 또는 다른 작업 수행
+                (context as? MainActivity)?.finish() // MainActivity 종료 시도
+            }
+            .show()
+    }
+    override fun onDetachedFromWindow() {
+        super.onDetachedFromWindow()
+        countDownTimer?.cancel() // 뷰가 화면에서 제거될 때 타이머 취소
     }
 }
