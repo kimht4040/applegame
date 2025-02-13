@@ -57,7 +57,7 @@ class InGameView(context: Context, attrs: AttributeSet?) : View(context, attrs) 
     // Runnable 정의: 그리드 업데이트 (숫자 떨어뜨리기, 다시 채우기, 화면 갱신)
     private val updateGridRunnable = object : Runnable {
         override fun run() {
-            gameGrid.dropNumbers() // 숫자들을 아래로 떨어뜨림
+            //gameGrid.dropNumbers() // 숫자들을 아래로 떨어뜨림
             // gameGrid.refillGrid()  // 이 부분을 제거하거나 주석 처리합니다.
             gridData = gameGrid.getGrid() // 변경된 그리드 데이터를 가져옴
             invalidate() // 화면을 다시 그림
