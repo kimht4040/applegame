@@ -1,0 +1,43 @@
+
+
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+xmlns:tools="http://schemas.android.com/tools"
+android:layout_width="match_parent"
+android:layout_height="match_parent"
+tools:context=".MainActivity">
+
+<ImageView
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:contentDescription="Game Background"
+    android:scaleType="centerCrop"
+    android:src="@drawable/main_background" />
+
+<Button
+    android:id="@+id/button1"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    android:layout_centerInParent="true"
+
+    android:text="Start"
+    android:textSize="40sp"
+    android:paddingVertical="8dp"
+    android:paddingHorizontal="24dp"
+    android:textColor="#FFFFFF" />
+
+<TextView
+    android:id="@+id/text1"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    android:layout_above="@+id/button1"
+    android:layout_alignParentTop="true"
+    android:layout_centerHorizontal="true"
+    android:layout_marginTop="58dp"
+    android:layout_marginBottom="40dp"
+    android:paddingHorizontal="24dp"
+    android:paddingVertical="8dp"
+    android:text="APPLE GAME"
+    android:textSize="40sp"
+    android:textStyle="bold" />
+
+</RelativeLayout>
