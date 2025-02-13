@@ -1,3 +1,4 @@
+// InGameView.kt  (전체 코드)
 package com.example.myapplication
 
 import android.content.Context
@@ -12,6 +13,7 @@ import android.widget.TextView
 import android.os.CountDownTimer // CountDownTimer import
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
+import kotlin.math.abs
 
 
 class InGameView(context: Context, attrs: AttributeSet?) : View(context, attrs) {
@@ -48,7 +50,7 @@ class InGameView(context: Context, attrs: AttributeSet?) : View(context, attrs) 
     private var scoreTextView: TextView? = null //점수 TextView
     private var timerTextView: TextView? = null //타이머 TextView
     private var countDownTimer: CountDownTimer? = null // CountDownTimer 변수 추가
-    private var timeLeftInMillis: Long = 120000 // 60초 (원하는 시간으로 변경)
+    private var timeLeftInMillis: Long = 60000 // 60초 (원하는 시간으로 변경)
     private var timerRunning: Boolean = false
 
 
@@ -94,7 +96,7 @@ class InGameView(context: Context, attrs: AttributeSet?) : View(context, attrs) 
     }
 
     private fun updateScoreDisplay(){
-        scoreTextView?.text = "Score: $score" // TextView에 점수 표시
+        scoreTextView?.text = "$score" // TextView에 점수 표시
     }
 
     init {
@@ -109,7 +111,7 @@ class InGameView(context: Context, attrs: AttributeSet?) : View(context, attrs) 
         invalidate()
         score = 0 // 점수 초기화
         updateScoreDisplay() // 점수 표시 업데이트
-        timeLeftInMillis = 120000 // 타이머 초기화
+        timeLeftInMillis = 60000 // 타이머 초기화
         updateCountdownText()
         handler.postDelayed(updateGridRunnable, 500) // 게임 루프 시작
     }
@@ -189,13 +191,17 @@ class InGameView(context: Context, attrs: AttributeSet?) : View(context, attrs) 
             MotionEvent.ACTION_MOVE -> {
                 val (row, col) = getCellAtPoint(event.x, event.y)
                 if (row != -1 && col != -1) {
-                    //이미 추가 된 경우에, 무시
-                    if (!selectedCells.contains(Pair(row, col))) {
-                        selectedCells.add(Pair(row, col))
+                    // 새 셀이 이전에 선택된 셀과 인접한지 확인
+                    val lastSelected = selectedCells.lastOrNull() // 마지막으로 선택된 셀
+                    if (lastSelected != null && isAdjacent(lastSelected, Pair(row, col))) {
+                        // 인접하고, 아직 추가되지 않은 경우에만 추가
+                        if (!selectedCells.contains(Pair(row, col))) {
+                            selectedCells.add(Pair(row, col))
+                        }
+                        endX = event.x
+                        endY = event.y
+                        invalidate()
                     }
-                    endX = event.x
-                    endY = event.y
-                    invalidate()
                 }
                 return true
             }
@@ -221,10 +227,17 @@ class InGameView(context: Context, attrs: AttributeSet?) : View(context, attrs) 
 
                 }
                 return true
+
             }
         }
         return super.onTouchEvent(event)
 
+    }
+    // 두 셀이 인접한지 확인하는 함수
+    private fun isAdjacent(cell1: Pair<Int, Int>, cell2: Pair<Int, Int>): Boolean {
+        val (row1, col1) = cell1
+        val (row2, col2) = cell2
+        return abs(row1 - row2) <= 1 && abs(col1 - col2) <= 1
     }
 
     // 좌표를 셀 (row, col)로 변환하는 함수
@@ -306,4 +319,5 @@ class InGameView(context: Context, attrs: AttributeSet?) : View(context, attrs) 
         super.onDetachedFromWindow()
         countDownTimer?.cancel() // 뷰가 화면에서 제거될 때 타이머 취소
     }
+
 }
