@@ -104,7 +104,7 @@ class InGameView(context: Context, attrs: AttributeSet?) : View(context, attrs) 
     }
 
     private fun updateScoreDisplay(){
-        scoreTextView?.text = "Score: $score" // TextView에 점수 표시
+        scoreTextView?.text = "$score" // TextView에 점수 표시
     }
 
     override fun onDraw(canvas: Canvas) {
