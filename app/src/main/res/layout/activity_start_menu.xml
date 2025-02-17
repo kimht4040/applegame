@@ -23,19 +23,6 @@
         android:paddingHorizontal="24dp"
         android:textColor="#FFFFFF" />
 
-    <TextView
-        android:id="@+id/text1"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_above="@+id/button1"
-        android:layout_alignParentTop="true"
-        android:layout_centerHorizontal="true"
-        android:layout_marginTop="58dp"
-        android:layout_marginBottom="40dp"
-        android:paddingHorizontal="24dp"
-        android:paddingVertical="8dp"
-        android:text="APPLE GAME"
-        android:textSize="40sp"
-        android:textStyle="bold" />
+
 
 </RelativeLayout>

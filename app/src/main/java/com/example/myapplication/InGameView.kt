@@ -13,7 +13,7 @@ import android.widget.TextView
 import android.os.CountDownTimer // CountDownTimer import
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
-import kotlin.math.abs
+import android.widget.ProgressBar
 
 
 class InGameView(context: Context, attrs: AttributeSet?) : View(context, attrs) {
@@ -22,13 +22,14 @@ class InGameView(context: Context, attrs: AttributeSet?) : View(context, attrs) 
     private var gridData: Array<IntArray> = emptyArray()
     private var cellSize: Float = 0f
     private val cellPadding: Float = 8f
-
+    private var timerProgressBar: ProgressBar? = null
     private val textPaint = Paint().apply {
         color = Color.BLACK
         textSize = 60f
         textAlign = Paint.Align.CENTER
         isFakeBoldText = true
     }
+
 
     private val selectedRectPaint = Paint().apply {
         style = Paint.Style.STROKE
@@ -48,9 +49,9 @@ class InGameView(context: Context, attrs: AttributeSet?) : View(context, attrs) 
 
     private var score = 0 // 점수를 저장할 변수
     private var scoreTextView: TextView? = null //점수 TextView
-    private var timerTextView: TextView? = null //타이머 TextView
+
     private var countDownTimer: CountDownTimer? = null // CountDownTimer 변수 추가
-    private var timeLeftInMillis: Long = 60000 // 60초 (원하는 시간으로 변경)
+    private var timeLeftInMillis: Long = 120000 // 60초 (원하는 시간으로 변경)
     private var timerRunning: Boolean = false
 
 
@@ -82,11 +83,11 @@ class InGameView(context: Context, attrs: AttributeSet?) : View(context, attrs) 
         updateScoreDisplay() // 초기 점수 표시
     }
 
-    fun setTimerTextView(textView: TextView) {
-        timerTextView = textView
-        updateCountdownText() // 초기 타이머 텍스트 설정
-    }
 
+    fun setTimerProgressBar(progressBar: ProgressBar) { // ProgressBar 설정 새 함수
+        timerProgressBar = progressBar
+        timerProgressBar?.progress = (timeLeftInMillis / 1000).toInt() // 초기 진행률 설정
+    }
 
 
     // 점수를 업데이트하고 TextView에 표시하는 함수
@@ -113,7 +114,7 @@ class InGameView(context: Context, attrs: AttributeSet?) : View(context, attrs) 
         invalidate()
         score = 0 // 점수 초기화
         updateScoreDisplay() // 점수 표시 업데이트
-        timeLeftInMillis = 60000 // 타이머 초기화
+        timeLeftInMillis = 120000 // 타이머 초기화
         updateCountdownText()
         handler.postDelayed(updateGridRunnable, 500) // 게임 루프 시작
     }
@@ -280,19 +281,17 @@ class InGameView(context: Context, attrs: AttributeSet?) : View(context, attrs) 
         countDownTimer = object : CountDownTimer(timeLeftInMillis, 1000) {
             override fun onTick(millisUntilFinished: Long) {
                 timeLeftInMillis = millisUntilFinished
-                updateCountdownText()
+                updateCountdownText() // onTick에서 ProgressBar 업데이트
             }
 
             override fun onFinish() {
                 timerRunning = false
                 timeLeftInMillis = 0
                 updateCountdownText()
-                showGameOverDialog() // 게임 종료 다이얼로그 표시
-                handler.removeCallbacks(updateGridRunnable) //updateGridRunnable 중지
-
+                showGameOverDialog()
+                handler.removeCallbacks(updateGridRunnable)
             }
         }.start()
-
         timerRunning = true
     }
 
@@ -302,12 +301,10 @@ class InGameView(context: Context, attrs: AttributeSet?) : View(context, attrs) 
     }
 
     private fun updateCountdownText() {
-        val minutes = (timeLeftInMillis / 1000) / 60
-        val seconds = (timeLeftInMillis / 1000) % 60
-
-        val timeLeftFormatted = String.format("%02d:%02d", minutes, seconds)
-        timerTextView?.text = timeLeftFormatted
+        val progress = (timeLeftInMillis * 100 / 120000).toInt() // 진행률 퍼센트 계산 (0-100) - ProgressBar에는 불필요
+        timerProgressBar?.progress = (timeLeftInMillis / 1000).toInt() // ProgressBar 진행률 (초 단위) 업데이트
     }
+
 
     private fun showGameOverDialog() {
         AlertDialog.Builder(context)
